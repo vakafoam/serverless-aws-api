@@ -45,6 +45,18 @@ provider:
 #            - "Ref" : "ServerlessDeploymentBucket"
 #            - "/*"
 
+iam:
+  role:
+    statements:
+      - Effect: Allow
+        Action:
+          - "dynamodb:PutItem"
+          - "dynamodb:GetItem"
+          - "dynamodb:DeleteItem"
+          - "dynamodb:Scan"
+        Resource:
+          - { "Fn::GetAtt": ["ProductsTable", "Arn"] }
+
 # you can define service wide environment variables here
 #  environment:
 #    variable1: value1
@@ -58,8 +70,13 @@ provider:
 #    - include-me-dir/**
 
 functions:
-  hello:
-    handler: src/handlers.hello
+  createProduct:
+    handler: src/handlers.createProduct
+    events:
+      - httpApi:
+          path: /product
+          method: post
+
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
@@ -113,3 +130,19 @@ plugins:
 #     NewOutput:
 #       Description: "Description for the output"
 #       Value: "Some output value"
+
+resources:
+  Resources:
+    ProductTable: # custom name
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ProductsTable
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: productID
+            AttributeType: S # string, number or binary
+        KeySchema:
+          - AttributeName: productID
+            KeyType: HASH
