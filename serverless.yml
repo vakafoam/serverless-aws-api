@@ -45,17 +45,15 @@ provider:
 #            - "Ref" : "ServerlessDeploymentBucket"
 #            - "/*"
 
-iam:
-  role:
-    statements:
-      - Effect: Allow
-        Action:
-          - "dynamodb:PutItem"
-          - "dynamodb:GetItem"
-          - "dynamodb:DeleteItem"
-          - "dynamodb:Scan"
-        Resource:
-          - { "Fn::GetAtt": ["ProductsTable", "Arn"] }
+iamRoleStatements:
+  - Effect: Allow
+    Action:
+      - "dynamodb:PutItem"
+      - "dynamodb:GetItem"
+      - "dynamodb:DeleteItem"
+      - "dynamodb:Scan"
+    Resource:
+      - { "Fn::GetAtt": ["ProductsTable", "Arn"] }
 
 # you can define service wide environment variables here
 #  environment:
@@ -76,6 +74,12 @@ functions:
       - httpApi:
           path: /product
           method: post
+  getProduct:
+    handler: src/handlers.getProduct
+    events:
+      - httpApi:
+          path: /product/{id}
+          method: get
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
