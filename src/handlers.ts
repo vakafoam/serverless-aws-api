@@ -6,19 +6,28 @@ const docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = "ProductsTable";
 
 export const createProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const reqBody = JSON.parse(event.body as string);
-  const product = { ...reqBody, productID: v4() };
+  try {
+    const reqBody = JSON.parse(event.body as string);
+    const product = { ...reqBody, productID: v4() };
 
-  await docClient
-    .put({
-      TableName: tableName,
-      Item: product,
-    })
-    .promise();
-  return {
-    statusCode: 201,
-    body: JSON.stringify(product),
-  };
+    await docClient
+      .put({
+        TableName: tableName,
+        Item: product,
+      })
+      .promise();
+    // ".promise()" method is a part of AWS SDK and it turns entire expression's result (in this case docClient.put(...)) into a javascript Promise object
+
+    return {
+      statusCode: 201,
+      body: JSON.stringify(product),
+    };
+  } catch (e) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify(e),
+    };
+  }
 };
 
 export const getProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
