@@ -2,6 +2,9 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import AWS from "aws-sdk";
 import { v4 } from "uuid";
 
+import { fetchProductById, handleError } from "./helpers";
+import HttpError from "./HttpError";
+
 const docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = "ProductsTable";
 
@@ -32,26 +35,40 @@ export const createProduct = async (event: APIGatewayProxyEvent): Promise<APIGat
 
 export const getProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const id = event.pathParameters?.id;
-  const output = await docClient
-    .get({
-      TableName: tableName,
-      Key: {
-        productID: id,
-      },
-    })
-    .promise();
-
-  if (!output.Item) {
+  try {
+    const product = fetchProductById(docClient, id);
     return {
-      statusCode: 404,
-      body: JSON.stringify({ error: "Item not found" }),
+      statusCode: 200,
+      body: JSON.stringify(product),
     };
+  } catch (e) {
+    return handleError(e);
   }
+};
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify(output.Item),
-  };
+export const updateProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  const id = event.pathParameters?.id;
+
+  try {
+    await fetchProductById(docClient, id); // just check if item exists (no error thrown)
+
+    const reqBody = JSON.parse(event.body as string);
+    const product = { ...reqBody, productID: id };
+
+    await docClient
+      .put({
+        TableName: tableName,
+        Item: product, // it's gonna update the item if id exists
+      })
+      .promise();
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(product),
+    };
+  } catch (e) {
+    return handleError(e);
+  }
 };
 
 // call 'serverless deploy' to deploy the function
