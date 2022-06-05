@@ -1,6 +1,6 @@
 import HttpError from "./HttpError";
 
-const tableName = "ProductsTable";
+export const tableName = "ProductsTable";
 
 export const fetchProductById = async (docClient: AWS.DynamoDB.DocumentClient, id?: string) => {
   const output = await docClient.get({ TableName: tableName, Key: { productID: id } }).promise();

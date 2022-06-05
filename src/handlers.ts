@@ -2,11 +2,12 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import AWS from "aws-sdk";
 import { v4 } from "uuid";
 
-import { fetchProductById, handleError } from "./helpers";
-import HttpError from "./HttpError";
+import { fetchProductById, handleError, tableName } from "./helpers";
 
 const docClient = new AWS.DynamoDB.DocumentClient();
-const tableName = "ProductsTable";
+const headers = {
+  "content-type": "application/json",
+};
 
 export const createProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
@@ -23,6 +24,7 @@ export const createProduct = async (event: APIGatewayProxyEvent): Promise<APIGat
 
     return {
       statusCode: 201,
+      headers,
       body: JSON.stringify(product),
     };
   } catch (e) {
@@ -39,6 +41,7 @@ export const getProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewa
     const product = fetchProductById(docClient, id);
     return {
       statusCode: 200,
+      headers,
       body: JSON.stringify(product),
     };
   } catch (e) {
@@ -64,11 +67,45 @@ export const updateProduct = async (event: APIGatewayProxyEvent): Promise<APIGat
 
     return {
       statusCode: 200,
+      headers,
       body: JSON.stringify(product),
     };
   } catch (e) {
     return handleError(e);
   }
+};
+
+export const deleteProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  const id = event.pathParameters?.id;
+  try {
+    await fetchProductById(docClient, id);
+    await docClient
+      .delete({
+        TableName: tableName,
+        Key: {
+          productID: id,
+        },
+      })
+      .promise();
+
+    return { statusCode: 204, headers, body: "" };
+  } catch (e) {
+    return handleError(e);
+  }
+};
+
+export const listProduct = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  const output = await docClient
+    .scan({
+      TableName: tableName,
+    })
+    .promise();
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify(output.Items),
+  };
 };
 
 // call 'serverless deploy' to deploy the function
